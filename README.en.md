@@ -24,6 +24,20 @@ It is not a tool for “letting an agent run forever.” It is a protocol for ho
 
 For tasks longer than 2 hours, this protocol can significantly improve the output stability and auditable quality of Codex 5.5 xhigh model runs. It reduces context drift, unauthorized writes, and evidence-free release decisions. It does not replace final business review.
 
+## Five-Field Recovery Check
+
+When a long task resumes, the compressed summary only tells you roughly where the work stopped. It must not replace a handoff sheet. Before the main thread continues, confirm these 5 fields:
+
+| Field | Question to answer | Typical risk when missing |
+|---|---|---|
+| Original goal | What must be delivered in the end? | The task drifts toward incidental work |
+| Forbidden paths | Which files, directories, or actions are off limits? | The worker touches old boundaries or high-risk paths again |
+| Failed attempts | Which approaches already failed, and why? | A rejected approach gets retried |
+| Open facts | Which claims still need evidence? | Unverified assumptions become confirmed statements |
+| Next gate | Which receipt, check, or human confirmation must happen before continuing? | A natural-language “done” becomes a release decision |
+
+Write these fields into `状态包/当前状态.json` under `恢复前检查`, and review them whenever a task resumes after compression, enters major rework, or reaches a high-risk release point.
+
 ## When To Use It
 
 - A task is expected to take more than 2 hours and needs multiple execution units.
@@ -88,6 +102,8 @@ Create these files in the target project. See `examples/最小闭环示例/状�
 ```
 
 These files keep stage state outside the chat transcript.
+
+`当前状态.json` must also preserve the recovery fields: `原始目标`, `禁止路径`, `失败记录`, `待核事实`, and `下一步闸门`. If any field is empty, update the state package before delegating more work.
 
 ### Step 3: Copy The Task Package Template
 
