@@ -38,6 +38,22 @@ When a long task resumes, the compressed summary only tells you roughly where th
 
 Write these fields into `状态包/当前状态.json` under `恢复前检查`, and review them whenever a task resumes after compression, enters major rework, or reaches a high-risk release point.
 
+## Thread Monitoring Lock
+
+After an isolated thread is created, the main thread may do one startup check after about 10 seconds. That check only confirms that the thread exists, is readable, and can be registered. It must not judge artifact progress.
+
+Formal monitoring must be represented in heartbeat and action policy fields:
+
+| Rule | Machine field |
+|---|---|
+| Fixed 15-minute heartbeat | `心跳周期分钟: 15` |
+| Pause dispatch when heartbeat creation fails | `心跳创建失败处理` must mention pausing and no short polling |
+| The main thread must not short-poll artifacts | `manual_short_poll_thread_output` must appear in `永久阻断动作` |
+| Thread previews and file-existence checks do not prove progress | `禁止替代进度来源` must list short polling, thread preview, and file-existence checks |
+| Release decisions use receipts, monitor state, and gates | `进度判定来源` must come from heartbeat, receipt, or explicit user-requested intervention |
+
+Once heartbeat monitoring exists, the main thread must not use 20-second or 60-second waits, thread previews, file checks, or manual polling to infer progress. If heartbeat creation fails, pause dispatch instead of using short polling as a fallback.
+
 ## When To Use It
 
 - A task is expected to take more than 2 hours and needs multiple execution units.
@@ -120,6 +136,7 @@ Copy `templates/任务包.template.json` into the target project’s `状态包/
 | `禁止触碰路径` | Defines paths that must not be touched |
 | `回执监控路径` | Defines where the worker writes the receipt |
 | `监控器状态路径` | Defines where the main thread or automation checks monitor state |
+| `动作策略` | Defines allowed monitor actions, permanently blocked actions, and heartbeat failure handling |
 | `验收标准` | Defines how the main thread decides whether to enter the gate |
 
 High-risk artifacts should only be authorized to `独立线程` or to an equivalent isolated carrier explicitly accepted by the user.
@@ -132,7 +149,8 @@ Send only the necessary context:
 2. Required file paths.
 3. Allowed write paths and forbidden paths.
 4. Receipt path.
-5. A stop condition: after completion, write the receipt and do not start the next stage.
+5. Startup confirmation only checks that the thread is readable; it does not judge artifact progress.
+6. A stop condition: after completion, write the receipt and do not start the next stage.
 
 The point is to provide narrow but complete context. Do not hand the entire main-thread context to the execution unit.
 
@@ -154,6 +172,8 @@ The main thread accepts only machine-readable receipts, not natural-language com
 Monitor state may be written by automation, or by the main thread after checking the receipt file. See `templates/监控状态.template.json`.
 
 The main thread continues to gate evaluation only when `监控状态` is `已收到回执`, and `任务包ID`, `回执路径`, and `状态路径` all match.
+
+Monitor state must also record `心跳周期分钟`, `心跳创建状态`, `进度判定来源`, `短轮询禁止`, and `禁止替代进度来源`. `进度判定来源` must not be `manual_short_poll_thread_output`, a short-wait file check, or a thread preview check.
 
 ### Step 7: Run The Gate Script
 

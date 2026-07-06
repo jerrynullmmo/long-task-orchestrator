@@ -29,6 +29,17 @@
   "回执监控路径": "状态包/回执/文档整理任务回执.json",
   "回执监控方式": "心跳自动化定时检查回执文件",
   "监控器状态路径": "状态包/监控/文档整理任务监控.json",
+  "动作策略": {
+    "允许监控动作": [
+      "confirm_thread_started",
+      "register_thread_heartbeat",
+      "heartbeat_check_status"
+    ],
+    "永久阻断动作": [
+      "manual_short_poll_thread_output"
+    ],
+    "心跳创建失败处理": "暂停调度，禁止用短轮询补救。"
+  },
   "验收标准": [
     "src/output.md 存在且位于授权路径内。",
     "回执任务包ID匹配。",
